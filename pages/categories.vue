@@ -10,10 +10,10 @@
       <div>
         <div class="flex items-center space-x-3">
           <div>
-            <AppFormInput />
+            <AppFormInput v-model="name" @keyup.enter="addCategory"/>
           </div>
 
-          <AppButton>
+          <AppButton @click="addCategory">
             Adicionar
           </AppButton>
         </div>
@@ -37,47 +37,39 @@
         </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-        <tr class="bg-white">
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-            <div class="w-72">
-              <AppFormInput />
-            </div>
-          </td>
+          <tr
+            class="bg-white"
+            v-for="category in categories"
+            :key="category.id"
+          >
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <div
+                  v-if="category.is_updating"
+                  class="w-72"
+              >
+                <AppFormInput v-model="category.name" @keyup.enter="updateCategory(category)"/>
+              </div>
+              <div v-else>
+                {{ category.name }}
+              </div>
+            </td>
 
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-            <a
-              href="#"
-              class="text-indigo-600 hover:text-indigo-900"
-            >Edit
-            </a>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+              <a
+                href="#"
+                class="text-indigo-600 hover:text-indigo-900"
+                @click.stop.prevent="toUpdate(category)"
+              >Edit
+              </a>
 
-            <a
-              href="#"
-              class="text-red-600 hover:text-red-900"
-            >Excluir
-            </a>
-          </td>
-        </tr>
-
-        <tr class="bg-white">
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-            Categoria 2
-          </td>
-
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-            <a
-              href="#"
-              class="text-indigo-600 hover:text-indigo-900"
-            >Edit
-            </a>
-
-            <a
-              href="#"
-              class="text-red-600 hover:text-red-900"
-            >Excluir
-            </a>
-          </td>
-        </tr>
+              <a
+                href="#"
+                class="text-red-600 hover:text-red-900"
+                @click.stop.prevent="deleteCategory(category.id)"
+              >Excluir
+              </a>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -99,9 +91,55 @@ export default {
   },
 
   data() {
-    return {};
+    return {
+      name: ''
+    };
   },
 
-  methods: {},
+  async asyncData({ store }){
+    return {
+      categories: await store.dispatch('categories/getCategories')
+          .then(response => response.map(obj => ({ ...obj, is_updating: false})))
+    }
+  },
+
+  methods: {
+    addCategory(){
+      if(!this.name){
+        return;
+      }
+
+      const data = {
+        name: this.name,
+      };
+
+      return this.$store.dispatch('categories/addCategory', data)
+          .then((response) => {
+            this.categories.push(response);
+            this.name = '';
+          });
+    },
+    toUpdate(category){
+      category.is_updating = true;
+    },
+    updateCategory(category) {
+      const data = {
+        name: category.name,
+      };
+
+      this.$store.dispatch('categories/updateCategory',{ id: category.id, data: data})
+          .then(() => {
+            category.is_updating = false;
+          })
+    },
+    deleteCategory(id) {
+      this.$store.dispatch('categories/deleteCategory',id)
+          .then(() => {
+            const idx = this.categories.findIndex(obj => obj.id === id);
+
+            this.categories.splice(idx, 1);
+          });
+    },
+  },
 };
 </script>
